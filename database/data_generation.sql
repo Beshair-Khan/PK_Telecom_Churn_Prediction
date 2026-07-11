@@ -77,3 +77,33 @@ FROM customers
 WHERE random() < 0.02
 ON CONFLICT (customer_id) DO NOTHING;
 select count(*) from customers;
+
+--Plans
+INSERT INTO plans (plan_id, operator, plan_type, monthly_price, data_cap_gb, minutes_included) VALUES
+('PLAN001', 'Jazz', 'prepaid', 350.00, 8, 500),
+('PLAN002', 'Jazz', 'prepaid', 850.00, 24, 1500),
+('PLAN003', 'Jazz', 'postpaid', 1500.00, 50, 3000),
+('PLAN004', 'Jazz', 'postpaid', 3000.00, 9999, 9999),
+('PLAN005', 'Zong', 'prepaid', 300.00, 8, 500),
+('PLAN006', 'Zong', 'prepaid', 800.00, 24, 1500),
+('PLAN007', 'Zong', 'postpaid', 1400.00, 50, 3000),
+('PLAN008', 'Zong', 'postpaid', 2800.00, 9999, 9999),
+('PLAN009', 'Ufone', 'prepaid', 320.00, 6, 400),
+('PLAN010', 'Ufone', 'prepaid', 780.00, 20, 1200),
+('PLAN011', 'Ufone', 'postpaid', 1300.00, 40, 2500),
+('PLAN012', 'Ufone', 'postpaid', 2500.00, 9999, 9999),
+('PLAN013', 'Telenor', 'prepaid', 280.00, 6, 400),
+('PLAN014', 'Telenor', 'prepaid', 750.00, 20, 1200),
+('PLAN015', 'Telenor', 'postpaid', 1200.00, 40, 2500),
+('PLAN016', 'Telenor', 'postpaid', 2400.00, 9999, 9999);
+
+select count(*) from plans;
+UPDATE customers c
+SET plan_id = (
+    SELECT p.plan_id
+    FROM plans p
+    WHERE p.operator = c.operator
+      AND p.plan_type = c.plan_type
+    ORDER BY random()
+    LIMIT 1
+);
