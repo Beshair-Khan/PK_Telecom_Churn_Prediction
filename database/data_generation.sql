@@ -107,3 +107,32 @@ SET plan_id = (
     ORDER BY random()
     LIMIT 1
 );
+--Recharge
+INSERT INTO recharges (recharge_id, customer_id, amount_pkr, recharge_date, channel)
+SELECT
+    'RCH' || LPAD(ROW_NUMBER() OVER ()::text, 8, '0') AS recharge_id,
+    sub.customer_id,
+    CASE 
+        WHEN random() < 0.02 THEN -1 * (ARRAY[50,100,150,200,300,500,1000])[FLOOR(random()*7+1)::int]
+        ELSE (ARRAY[50,100,150,200,300,500,1000])[FLOOR(random()*7+1)::int]
+    END::decimal(10,2) AS amount_pkr,
+    (sub.signup_date + (random() * (sub.end_date - sub.signup_date))::int) AS recharge_date,
+    (ARRAY['Easypaisa','JazzCash','Retailer','Bank Transfer','easypaisa','EP'])[FLOOR(random()*6+1)::int] AS channel
+FROM (
+    SELECT 
+        c.customer_id,
+        c.signup_date,
+        CASE 
+            WHEN c.status = 'churned' 
+            THEN c.signup_date + ((CURRENT_DATE - c.signup_date) * (0.3 + random()*0.4))::int
+            ELSE CURRENT_DATE
+        END AS end_date,
+        CASE 
+            WHEN c.status = 'churned' THEN FLOOR(random()*5+1)::int
+            ELSE FLOOR(random()*39+2)::int
+        END AS num_recharges
+    FROM customers c
+    WHERE c.plan_type = 'prepaid'
+) sub
+CROSS JOIN LATERAL generate_series(1, sub.num_recharges) AS g
+ON CONFLICT (recharge_id) DO NOTHING;
