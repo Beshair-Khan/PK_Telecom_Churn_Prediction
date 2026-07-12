@@ -39,3 +39,61 @@ previous_revenue as(
 select operator, Total_revenue, month, pre_revenue,
 round((total_revenue-pre_revenue)/nullif(pre_revenue,0)* 100::numeric,2) as growth_rate
 from previous_revenue;
+
+--Behavioral churn label: prepaid (90+ days since last recharge) vs postpaid (unpaid invoice, 60+ days since last billing), 
+with recent_date as (
+    select max(recharge_date) as recent_date
+    from recharges),
+prepaid_churn as (
+    select r.customer_id,
+    case when (d.recent_date - MAX(r.recharge_date)) >= 90 then 'Yes' else 'No' end as churned
+    from recharges r
+    cross join recent_date d
+    group by r.customer_id, d.recent_date),
+recent_billing_month as (
+    select MAX(billing_month) as recent_month
+    from invoices),
+last_invoice as (
+    select customer_id, billing_month, payment_date,
+    ROW_NUMBER() over (partition by customer_id order by billing_month desc) as rn
+    from invoices),
+postpaid_churn as (
+    select li.customer_id,
+    case 
+    	when (m.recent_month - li.billing_month) >= 60 and li.payment_date is null then 'Yes' else 'No' 
+    end as churned
+    from last_invoice li
+    cross join recent_billing_month m
+    where li.rn = 1)
+select customer_id, churned from prepaid_churn
+union all
+select customer_id, churned from postpaid_churn;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
