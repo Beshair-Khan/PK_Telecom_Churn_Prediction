@@ -115,6 +115,37 @@ group by tower_id
 having count(call_id)>=50
 order by tower_rank asc;
 
+--Cohort retention: for each signup-month cohort, what % of customers 
+--showed activity at 3, 6, and 12 months after signup
+with cohort as(
+	select customer_id, signup_date , to_char(signup_date,'yyyy-mm') as cohort_month
+	from customers
+	order by customer_id),
+activity as(
+	select customer_id, recharge_date as activity
+	from recharges
+	union all
+	select customer_id, payment_date as activity
+	from invoices
+	where payment_date is not null),
+month_value_assign as(
+	select c.customer_id, c.cohort_month,
+	max(case when a.activity >= c.signup_date  + interval '3 month' then 1 else 0 end) as three_month,
+	max(case when a.activity >= c.signup_date   + interval '6 month' then 1 else 0 end) as six_month,
+	max(case when a.activity >= c.signup_date   + interval '12 month' then 1 else 0 end) as twelve_month
+	from cohort c
+	left join activity a
+	on c.customer_id = a.customer_id
+	group by c.customer_id, c.cohort_month )
+select cohort_month,
+count(*) as cohort_size,
+round(100.0* sum(three_month)/count(*),2) as retained_3m,
+round(100.0* sum(six_month)/count(*),2) as retained_6m,
+round(100.0* sum(twelve_month)/count(*),2) as retained_12m
+from month_value_assign 
+group by cohort_month 
+order by cohort_month;
+
 
 
 
