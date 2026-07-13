@@ -69,8 +69,41 @@ select customer_id, churned from prepaid_churn
 union all
 select customer_id, churned from postpaid_churn;
 
-
-
+-- Recharge frequency trend per prepaid customer: compares recharge count 
+-- in their first 3 months vs most recent 3 months, labeled increasing/decreasing/stable
+with old_dates as(
+	select customer_id, min(recharge_date) as first_date 
+	from recharges
+	group by customer_id),
+final_first_months as(
+	select r.customer_id, count(r.amount_pkr) as recharge_in_first_3_months 
+	from recharges r
+	inner join old_dates o
+	on r.customer_id = o.customer_id 
+	where r.recharge_date < o.first_date + interval '3 months'
+	group by r.customer_id 
+	order by customer_id),
+recent_dates as(
+	select customer_id, max(recharge_date) as recent_date 
+	from recharges
+	group by customer_id),
+final_recent_months as(
+	select r.customer_id, count(r.amount_pkr) as recharge_in_recent_month
+	from recharges r
+	inner join recent_dates o
+	on r.customer_id = o.customer_id 
+	where r.recharge_date >= o.recent_date - interval '3 months'
+	group by r.customer_id 
+	order by customer_id)
+select ffm.customer_id, ffm.recharge_in_first_3_months, frm.recharge_in_recent_month,
+case
+	when ffm.recharge_in_first_3_months > coalesce(frm.recharge_in_recent_month,0)  then 'decreasing'
+	when ffm.recharge_in_first_3_months < coalesce(frm.recharge_in_recent_month,0)  then 'increasing'
+	else 'Stable'
+end as frequency_trend
+from final_first_months ffm
+left join final_recent_months frm
+on ffm.customer_id =frm.customer_id;
 
 
 
