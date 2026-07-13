@@ -105,6 +105,16 @@ from final_first_months ffm
 left join final_recent_months frm
 on ffm.customer_id =frm.customer_id;
 
+-- Call-drop rate by tower, ranked worst to best (towers with 50+ calls only)
+select tower_id,count(call_id) as total_calls, 
+round(avg(dropped_flag::int)*100,2) as drop_rate_percentage,
+dense_rank() over(order by round(avg(dropped_flag::int)*100,2) desc ) as tower_rank
+from call_logs
+where tower_id is not null
+group by tower_id
+having count(call_id)>=50
+order by tower_rank asc;
+
 
 
 
