@@ -46,16 +46,16 @@ with recent_date as (
     from recharges),
 prepaid_churn as (
     select r.customer_id,
-    case when (d.recent_date - MAX(r.recharge_date)) >= 90 then 'Yes' else 'No' end as churned
+    case when (d.recent_date - mac(r.recharge_date)) >= 90 then 'Yes' else 'No' end as churned
     from recharges r
     cross join recent_date d
     group by r.customer_id, d.recent_date),
 recent_billing_month as (
-    select MAX(billing_month) as recent_month
+    select max(billing_month) as recent_month
     from invoices),
 last_invoice as (
     select customer_id, billing_month, payment_date,
-    ROW_NUMBER() over (partition by customer_id order by billing_month desc) as rn
+    row_number() over (partition by customer_id order by billing_month desc) as rn
     from invoices),
 postpaid_churn as (
     select li.customer_id,
