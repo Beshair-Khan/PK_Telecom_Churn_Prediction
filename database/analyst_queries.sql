@@ -46,7 +46,7 @@ with recent_date as (
     from recharges),
 prepaid_churn as (
     select r.customer_id,
-    case when (d.recent_date - mac(r.recharge_date)) >= 90 then 'Yes' else 'No' end as churned
+    case when (d.recent_date - max(r.recharge_date)) >= 90 then 'Yes' else 'No' end as churned
     from recharges r
     cross join recent_date d
     group by r.customer_id, d.recent_date),
@@ -59,8 +59,7 @@ last_invoice as (
     from invoices),
 postpaid_churn as (
     select li.customer_id,
-    case 
-    	when (m.recent_month - li.billing_month) >= 60 and li.payment_date is null then 'Yes' else 'No' 
+    case when (m.recent_month - li.billing_month) >= 60 and li.payment_date is null then 'Yes' else 'No' 
     end as churned
     from last_invoice li
     cross join recent_billing_month m
@@ -146,6 +145,63 @@ from month_value_assign
 group by cohort_month 
 order by cohort_month;
 
+-- Early vs late churn by operator: of churned customers, what % churned 
+-- within their first 6 months of signup vs after 6 months
+with customer_recent_activity as(
+	select max(recharge_date) as last_activity
+	from recharges),
+prepaid_basic_info as(
+	select c.customer_id, c.signup_date, max(r.recharge_date) as recent_activity, c.operator 
+	from customers c
+	left join recharges r
+	on c.customer_id=r.customer_id
+	group by c.customer_id, c.signup_date, c.operator),
+prepaid_churned_customer as(
+	select b.customer_id, b.signup_date, c.last_activity,b.recent_activity, b.operator,
+	case when c.last_activity - b.recent_activity>=90 then 1 else 0 end as prepaid_churned
+	from customer_recent_activity c
+	cross join prepaid_basic_info b),
+postpaid_customers_activity as(
+	select max(payment_date) as last_activity
+	from invoices),
+postpaid_basic_info as(
+	select c.customer_id, c.signup_date, max(payment_date) as recent_activity, c.operator
+	from customers c
+	left join invoices i
+	on c.customer_id=i.customer_id 
+	where i.payment_date is not null
+	group by c.customer_id, c.signup_date, c.operator
+	order by c.customer_id),
+postpaid_churned as(
+	select b.customer_id, b.signup_date, p.last_activity, b.recent_activity, b.operator,
+	case when p.last_activity-b.recent_activity  >=60 then 1 else 0 end as postpaid_churned
+	from postpaid_customers_activity p
+	cross join postpaid_basic_info b),
+prepaid_labels as(
+	select customer_id, signup_date, recent_activity, operator,prepaid_churned, (recent_activity-signup_date) as gap
+	,case when recent_activity-signup_date < 180 then 'early' else 'late' end as churned_label
+	from prepaid_churned_customer
+	where prepaid_churned =1),
+postpaid_labels as(
+	select customer_id, signup_date, recent_activity, operator,postpaid_churned, (recent_activity-signup_date) as gap
+	,case when recent_activity-signup_date < 180 then 'early' else 'late' end as churned_label
+	from postpaid_churned
+	where postpaid_churned =1),
+two_labels as(
+	select customer_id, operator, churned_label
+	from postpaid_labels 
+	union all
+	select customer_id, operator, churned_label
+	from prepaid_labels),
+count_of_customers as (
+	select operator, churned_label, count(*) as total_churned_customers
+	from two_labels
+	group by operator, churned_label),
+sum_of_count as (
+	select *, (sum(total_churned_customers) OVER (PARTITION BY operator)) as total_sum
+	from count_of_customers)
+select *, round(100.0 * total_churned_customers/total_sum,2) as percentage_of_customers
+from sum_of_count
 
 
 
