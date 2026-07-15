@@ -201,7 +201,7 @@ sum_of_count as (
 	select *, (sum(total_churned_customers) OVER (PARTITION BY operator)) as total_sum
 	from count_of_customers)
 select *, round(100.0 * total_churned_customers/total_sum,2) as percentage_of_customers
-from sum_of_count
+from sum_of_count;
 
 
 
