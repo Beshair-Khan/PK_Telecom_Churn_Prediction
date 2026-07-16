@@ -120,7 +120,7 @@ having count(call_id)>=50
 order by tower_rank asc;
 
 --name: cohort retention
---Cohort retention: for each signup-month cohort, what % of customers 
+--Cohort retention: for each signup-month cohort, what percentage of customers 
 --showed activity at 3, 6, and 12 months after signup
 with cohort as(
 	select customer_id, signup_date , to_char(signup_date,'yyyy-mm') as cohort_month
@@ -152,7 +152,7 @@ group by cohort_month
 order by cohort_month;
 
 --name: churn timing by operator
--- Early vs late churn by operator: of churned customers, what % churned 
+-- Early vs late churn by operator: of churned customers, what percentage churned 
 -- within their first 6 months of signup vs after 6 months
 with customer_recent_activity as(
 	select max(recharge_date) as last_activity
