@@ -1,3 +1,4 @@
+--name: revenue by operator
 --Total revenue by operator (prepaid recharges + postpaid payments combined)
 select a.operator, sum(a.revenue) as Total_Revenue,
 row_number() over(order by sum(a.revenue) desc) as Operator_rank
@@ -14,6 +15,7 @@ from (
 	where r.amount_pkr>0) a   --Excludes negative recharge amounts
 group by a.operator;
 
+--name: monthly revenue trend
 -- Monthly revenue trend per operator with month-over-month growth rate
 with revenue as (
 	select c.operator, i.amount_paid as revenue, to_char(i.payment_date, 'yyyy-mm') as month
@@ -40,6 +42,7 @@ select operator, Total_revenue, month, pre_revenue,
 round((total_revenue-pre_revenue)/nullif(pre_revenue,0)* 100::numeric,2) as growth_rate
 from previous_revenue;
 
+--name: churn label
 --Behavioral churn label: prepaid (90+ days since last recharge) vs postpaid (unpaid invoice, 60+ days since last billing), 
 with recent_date as (
     select max(recharge_date) as recent_date
@@ -68,6 +71,7 @@ select customer_id, churned from prepaid_churn
 union all
 select customer_id, churned from postpaid_churn;
 
+--name: recharge frequency trend
 -- Recharge frequency trend per prepaid customer: compares recharge count 
 -- in their first 3 months vs most recent 3 months, labeled increasing/decreasing/stable
 with old_dates as(
@@ -104,6 +108,7 @@ from final_first_months ffm
 left join final_recent_months frm
 on ffm.customer_id =frm.customer_id;
 
+--name: call derop rate by tower
 -- Call-drop rate by tower, ranked worst to best (towers with 50+ calls only)
 select tower_id,count(call_id) as total_calls, 
 round(avg(dropped_flag::int)*100,2) as drop_rate_percentage,
@@ -114,6 +119,7 @@ group by tower_id
 having count(call_id)>=50
 order by tower_rank asc;
 
+--name: cohort retention
 --Cohort retention: for each signup-month cohort, what % of customers 
 --showed activity at 3, 6, and 12 months after signup
 with cohort as(
@@ -145,6 +151,7 @@ from month_value_assign
 group by cohort_month 
 order by cohort_month;
 
+--name: churn timing by operator
 -- Early vs late churn by operator: of churned customers, what % churned 
 -- within their first 6 months of signup vs after 6 months
 with customer_recent_activity as(
