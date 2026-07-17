@@ -1,0 +1,9 @@
+operator,churned_label,total_churned_customers,total_sum,percentage_of_customers
+Jazz,early,2461,15033.0,16.37
+Jazz,late,12572,15033.0,83.63
+Telenor,early,287,1703.0,16.85
+Telenor,late,1416,1703.0,83.15
+Ufone,early,1512,9652.0,15.67
+Ufone,late,8140,9652.0,84.33
+Zong,early,2776,17063.0,16.27
+Zong,late,14287,17063.0,83.73
