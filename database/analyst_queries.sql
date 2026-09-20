@@ -209,28 +209,3 @@ sum_of_count as (
 	from count_of_customers)
 select *, round(100.0 * total_churned_customers/total_sum,2) as percentage_of_customers
 from sum_of_count;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
